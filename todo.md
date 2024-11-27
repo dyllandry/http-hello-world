@@ -27,7 +27,9 @@ There are post install steps to allow running docker without sudo: `https://docs
 
 - [x] run api on VM
 
-- [ ] maybe do existing stuff on terraform
+- [ ] create azure blob storage container for .tfstate file
+- [ ] create main.tf that creates vm
+    - how do I get ssh private key from that?
 
 - [ ] expose api to public internet on port 8080
 - [ ] setup https
