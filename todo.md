@@ -13,9 +13,16 @@ ssh command to VM:
 - [x] create azure blob storage container for .tfstate file
 - [x] create resource group using remote state file
 
-- [ ] create main.tf that creates vm
-    - checkout azurerm docs for creating a vm
-    - how do I get ssh private key from that?
+- [x] create main.tf that creates vm
+
+- [ ] again manually create a vm using azure portal and compare to terraform's output
+    - Is the NSG necessary?
+    - My notes above say one was created. But I wonder if it had the same settings.
+
+- [ ] clean up terraform file
+
+- [ ] install docker, pull and run image
+    - maybe do this with terraform then do it with ansible and see how they differ
 
 - [ ] expose api to public internet on port 8080
 - [ ] setup https

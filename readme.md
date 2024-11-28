@@ -11,3 +11,12 @@ Checkout hashicorp's azure tutorial for how to acquire values:
 
 Now you can go on running terraform commands.
 
+# Create Infra
+
+TODO: talk about creating rsa ssh key: https://www.cyberciti.biz/faq/linux-generating-rsa-keys/
+
+# Connect
+
+ssh command to VM:
+
+`ssh -i <private key> <user>@<ip>`
