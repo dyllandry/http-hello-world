@@ -8,6 +8,14 @@ variable "vm_ssh_public_key_path" {
   }
 }
 
+locals {
+  vm_username = "adminuser"
+}
+
+output "vm_ssh_connection_command" {
+  value = "ssh -i ${var.vm_ssh_public_key_path} ${local.vm_username}@${azurerm_linux_virtual_machine.http-hello-world-vm.public_ip_address}"
+}
+
 terraform {
   required_providers {
     azurerm = {
@@ -46,14 +54,14 @@ resource "azurerm_linux_virtual_machine" "http-hello-world-vm" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   size                = "Standard_B2als_v2"
-  admin_username      = "adminuser"
+  admin_username      = local.vm_username
 
   network_interface_ids = [
     azurerm_network_interface.vm-nic.id
   ]
 
   admin_ssh_key {
-    username   = "adminuser"
+    username   = local.vm_username
     public_key = file(var.vm_ssh_public_key_path)
   }
 
