@@ -1,3 +1,6 @@
+# This terraform file requires an existing ssh key pair's public key to exist
+# on the local filesystem. Checkout the vm resourcefor more info.
+
 terraform {
   required_providers {
     azurerm = {
@@ -22,9 +25,49 @@ provider "azurerm" {
   features {}
 }
 
+# Terraform files are declarative, resources do not need to appear in any
+# particular order. The resources I've put first are those I think are most
+# representative of this project.
+
 resource "azurerm_resource_group" "rg" {
   name     = "http-hello-world"
   location = "canadaeast"
+}
+
+resource "azurerm_linux_virtual_machine" "http-hello-world-vm" {
+  name                = "http-hello-world-vm"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  size                = "Standard_B2als_v2"
+  admin_username      = "adminuser"
+
+  network_interface_ids = [
+    azurerm_network_interface.vm-nic.id
+  ]
+
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = file("~/.ssh/http-hello-world-vm.pub")
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server"
+    version   = "latest"
+  }
+}
+
+resource "azurerm_public_ip" "vm-ip" {
+  name                = "vm-ip"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  allocation_method   = "Static"
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -39,13 +82,6 @@ resource "azurerm_subnet" "subnet" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.2.0/24"]
-}
-
-resource "azurerm_public_ip" "vm-ip" {
-  name                = "vm-ip"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  allocation_method   = "Static"
 }
 
 resource "azurerm_network_interface" "vm-nic" {
@@ -84,32 +120,4 @@ resource "azurerm_network_interface_security_group_association" "vm-nic-nsg" {
   network_security_group_id = azurerm_network_security_group.vm-nsg.id
 }
 
-resource "azurerm_linux_virtual_machine" "http-hello-world-vm" {
-  name                = "http-hello-world-vm"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  size                = "Standard_B2als_v2"
-  admin_username      = "adminuser"
-
-  network_interface_ids = [
-    azurerm_network_interface.vm-nic.id
-  ]
-
-  admin_ssh_key {
-    username   = "adminuser"
-    public_key = file("~/.ssh/http-hello-world-vm.pub")
-  }
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "ubuntu-24_04-lts"
-    sku       = "server"
-    version   = "latest"
-  }
-}
 
