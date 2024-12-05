@@ -1,5 +1,12 @@
-# This terraform file requires an existing ssh key pair's public key to exist
-# on the local filesystem. Checkout the vm resourcefor more info.
+variable "vm_ssh_public_key_path" {
+  type        = string
+  default     = "~/.ssh/http-hello-world-vm.pub"
+  description = "The VM opens port 22 through a public IP for SSH connections. Provide the path to an ssh key pair public key to use it for authentication."
+  validation {
+    condition     = fileexists(var.vm_ssh_public_key_path)
+    error_message = "VM ssh public key does not exist at path vm_ssh_public_key_path."
+  }
+}
 
 terraform {
   required_providers {
@@ -11,7 +18,7 @@ terraform {
 
   required_version = ">= 1.1.0"
 
-  # This configures where terraform stores its tfstate file.
+  # Terraform will store and retrieve its tfstate file from here.
   backend "azurerm" {
     resource_group_name  = "shared-project-resources"
     storage_account_name = "dglstorageaccount"
@@ -47,7 +54,7 @@ resource "azurerm_linux_virtual_machine" "http-hello-world-vm" {
 
   admin_ssh_key {
     username   = "adminuser"
-    public_key = file("~/.ssh/http-hello-world-vm.pub")
+    public_key = file(var.vm_ssh_public_key_path)
   }
 
   os_disk {
@@ -119,5 +126,4 @@ resource "azurerm_network_interface_security_group_association" "vm-nic-nsg" {
   network_interface_id      = azurerm_network_interface.vm-nic.id
   network_security_group_id = azurerm_network_security_group.vm-nsg.id
 }
-
 
