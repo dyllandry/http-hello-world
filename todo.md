@@ -6,8 +6,8 @@
         - No. Without the NSG you can send requests to any port on the vm. When the NSG is added, you can only connect to ports the NSG allows.
 - [canceled] learn how to use vpn to connect to network
     - The only Azure VPN Gateway SKU that isn't being retired in 2025 is like $200/month
+- [x] clean up terraform file
 
-- [ ] clean up terraform file
 - [ ] install docker, pull and run image
     - Which to use? Terraform or Ansible?
 - [ ] expose api to public internet on port 8080
