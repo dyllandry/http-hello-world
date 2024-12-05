@@ -27,8 +27,8 @@ resource "azurerm_resource_group" "rg" {
   location = "canadaeast"
 }
 
-resource "azurerm_virtual_network" "vm-vnet" {
-  name                = "vm-vnet"
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   address_space       = ["10.0.0.0/16"]
@@ -37,18 +37,18 @@ resource "azurerm_virtual_network" "vm-vnet" {
 resource "azurerm_subnet" "subnet" {
   name                 = "subnet"
   resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vm-vnet.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-resource "azurerm_public_ip" "http-hello-world-ip" {
-  name                = "http-hello-world-ip"
+resource "azurerm_public_ip" "vm-ip" {
+  name                = "vm-ip"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   allocation_method   = "Static"
 }
 
-resource "azurerm_network_interface" "http-hello-world-vm-nic" {
+resource "azurerm_network_interface" "vm-nic" {
   name                = "nic"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
@@ -57,7 +57,7 @@ resource "azurerm_network_interface" "http-hello-world-vm-nic" {
     name                          = "nic-config"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.http-hello-world-ip.id
+    public_ip_address_id          = azurerm_public_ip.vm-ip.id
   }
 }
 
@@ -79,8 +79,8 @@ resource "azurerm_network_security_group" "vm-nsg" {
   }
 }
 
-resource "azurerm_network_interface_security_group_association" "vm-nsg-vm-nic" {
-  network_interface_id      = azurerm_network_interface.http-hello-world-vm-nic.id
+resource "azurerm_network_interface_security_group_association" "vm-nic-nsg" {
+  network_interface_id      = azurerm_network_interface.vm-nic.id
   network_security_group_id = azurerm_network_security_group.vm-nsg.id
 }
 
@@ -92,7 +92,7 @@ resource "azurerm_linux_virtual_machine" "http-hello-world-vm" {
   admin_username      = "adminuser"
 
   network_interface_ids = [
-    azurerm_network_interface.http-hello-world-vm-nic.id
+    azurerm_network_interface.vm-nic.id
   ]
 
   admin_ssh_key {
