@@ -8,9 +8,74 @@
     - The only Azure VPN Gateway SKU that isn't being retired in 2025 is like $200/month
 - [x] clean up terraform file
 
-- [ ] install docker, pull and run image
-    - Which to use? Terraform or Ansible?
-- [ ] expose api to public internet on port 8080
-- [ ] setup https
-- [ ] open up api port to web
+- [canceled] install docker, pull and run image
+    - Terraform says "provisioners" are a last resort. Provisioners setup software/files/data on a resource after it is created. They don't like these because they don't fit into terraform's declarative model. One recommendation terraform makes is to use a custom image with the software you need already on it.
+    - Maybe I can make a custom image for the vm: <https://learn.microsoft.com/en-us/azure/virtual-machines/linux/tutorial-custom-images>
+        - You create a custom image by creating a VM, configuring it how you like, then saving it as an image-version.
+        - There's also "VM Image Builder" to help you build images. It's built on packer which I think is from hashicorp: <https://learn.microsoft.com/en-us/azure/virtual-machines/image-builder-overview?tabs=azure-powershell>
+            - The steps are
+                - create user-assigned identity & role to interact with azure compute gallery (shared image gallery)
+                - create gallery
+                - create image definition
+                - create image template
+                - "invoke-action" to run image build
+    - So at this point, I understand that terraform recommends against doing stuff like running configuration commands on VMS after you create them. Terraform wants things done in a declarative way where they are able to track it. If you're running arbitrary provisioning commands, they can't track those since the commands could do anything.
+    - I know that if I did have to configure a vm after creating it, I could instead create a custom image using tools like packer/azure image builder. That way terraform isn't running arbitrary commands on a vm, it's just creating one using a pre-prepared image. And with packer, the image is created using a template, which I think is declarative.
+    - I could go ahead with this to learn a bit about packer.
+        - "Packer is a tool that lets you create identical machine images for multiple platforms from a single source template."
+            - I don't think this really describes my needs. I'm not building multiple images. But if it abstracts away things like Azure-specific parameters, that could be nice.
+    - I could change course and use Azure Container Instance to run my image, then sidecar things like caddy.
+    - [x] choose to either continue creating a custom image with docker installed to run container, or change direction and use Azure Container Instance
+        - Packer helps build images in a cloud agnostic way while minimizing changes to image manifests.
+            - <https://www.reddit.com/r/devops/comments/io9hgp/whats_the_point_of_packer/?rdt=37604>
+    - Can caddy be run as an image?
+        - Not sure if it needs access to specific privileged directories
+    - [?] compare and contrast setting up api two ways:
+        - 1) with a custom image built with packer setup to run caddy, that runs the api image
+            - Why would I run caddy outside docker but the api within docker?
+                - Maybe because I use the api docker image to keep it's env stable and predictable, in both prod and dev envs. But I don't really need that with caddy, since caddy just needs to work in prod?
+        - 2) azure container instances running the api image with a caddy sidecar
+    - What's the actual software I want to run?
+        - api docker image
+        - caddy for https
+            - Can install on ubuntu.
+            - Can run docker image.
+                - Caddy stores TLS certificates in /data which you can put in a docker volume for safe keeping. But Caddy is the program that handles the TLS certificates, and is a reverse proxy, so it doesn't matter where it puts the certs since as long as it knows where they are they can supply them when it serves a request made with TLS.
+    - So if I can run both the api and caddy using docker compose, that's nice.
+    - If I were to set this up using vms, I'd need to get at least docker runnin on the vm. Then I can run caddy and my api.
+    - If I were to use az container instances, I'd run the api image and a caddy sidecar.
+    - [x] check out what implementation would look like with az container instances
+        - container group
+            - cg runs on single host machine
+            - 1 CPU, 1 GB
+                - Costs $50 per CPU per month... And $5 per GB per month...
+                    - 4cpu 8gb container app: $634/month
+                    - 4cpu 8gb container instance: ~$240/month
+                    - 4cpu 8gb vm: ~$95/month
+                    - 4cpu 7GB app service: ~$72/month
+                    - 2cpu 8GB app service environment: ~$396/month
+                    - 2cpu 1gb container app: $271/month
+                    - 2cpu 1gb container instance: ~$110/month
+                    - 2cpu 3.5GB app service: 18/month
+                    - 2cpu 1gb vm: ~$12/month
+                - After looking at pricing, the cost effectiveness of plain VMs is very convincing.
+                - This makes me curious about the pricing of azure functions
+                    - Cold starts can be ten seconds.
+                - A 2 CPU 1GB VM costs $12/month
+            - public ip
+            - api container instance
+                - port 8080, 0.75 CPU 0.75 GB memory
+            - caddy container instance
+                - port 80/443, 0.25 CPU 0.25 GB memory
+                - caddy file, data, and config files get put in storage account file shares, since we want tls certs and config to persist across container images
+    - [x] check out what implementation would look like with azure app service
+        - just give it the api image.
+    - Vms are cheapest option besides Azure Functions, and Azure App Services are just a bit more expensive.
+    - Cost mindset: VMs are usually cheapest if you can't do cold-starting functions.
+    - Ease mindset: For this, App Service is just a $6/month more expensive and handles a lot of basic complexity for me. Like secret management, TLS, sidecars, etc.
+    - But I think this project is most valuable as an exercise in how to use bare VMs to get the job done.
+
+- [ ] get caddy and api containers running on vm
+    - [ ] see if ubuntu image has docker installed
+        - if it doesn't, we can build a custom image using azure image builder, and use that image instead
 
